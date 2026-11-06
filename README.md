@@ -15,6 +15,8 @@ An Agent Skill for Qoder, Claude Code, and any agent that reads `SKILL.md`.
 [![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#-design-notes)
 [![Works with](https://img.shields.io/badge/works%20with-Qoder%20%7C%20Claude%20Code-orange.svg)](#-quick-start)
 
+**English** | [简体中文](./README.zh-CN.md)
+
 [**Quick Start**](#-quick-start) · [**How It Works**](#-how-it-works) · [**Examples**](#-worked-examples) · [**Anti-patterns**](#-anti-patterns) · [**SKILL.md**](SKILL.md)
 
 </div>
@@ -329,7 +331,11 @@ What *is* wanted: examples from domains not yet covered, sharper anti-patterns o
 
 MIT © 2026 [h4444433333](https://github.com/h4444433333). See [LICENSE](LICENSE).
 
+---
+
 <div align="center">
+
+**English** | [简体中文](./README.zh-CN.md)
 
 **First, why?**
 

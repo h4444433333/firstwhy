@@ -1,427 +1,431 @@
-# 示例
+# Worked Examples
 
-五个走完流程的实例：一个轻量档，四个撞墙后走完整档（技能库、股票投资、代码查 bug、算法实验）。
+Five complete runs: one light tier, four full tier (skill library, stock investing, recurring bugs, ML experiments).
 
-每个完整档示例都在「反向校验」后标了一处「注意」——**只做一半的改动会漏掉哪一层**；又在结尾走了第 7 步——**哪条假设是地基、当场怎么验、验不过退到哪一步**。这两处是整套方法最值钱的地方。
+Every full-tier example carries two things worth the most:
 
----
-
-## 示例 1 · 轻量档（追到可动手原因，没撞墙）
-
-### 现象
-
-每开一个新会话，都要把项目约定重新讲一遍，讲漏了 Agent 就按自己的习惯来。
-
-### 追问链
-
-```
-为什么要重讲一遍？
-→ 因为约定只存在于历史聊天记录里，新会话读不到
-  （依据：新会话启动时没有任何文件被自动加载）
-
-为什么约定只在聊天记录里？
-→ 因为项目根目录没有一份写给 Agent 看的约定文件
-  （依据：根目录不存在 AGENTS.md / CLAUDE.md 之类文件）
-```
-
-**到这就停了。** 第二层已经是能直接动手的具体原因，没有撞到「大家都这样」，不需要拆解重建。
-
-### 方案
-
-在项目根目录放一份约定文件，写明：提交规范、目录职责、禁止事项。让每次会话自动加载它。
-
-### 反向校验
-
-```
-第 2 层「没有约定文件」→ 方案就是建这个文件，成立
-第 1 层「约定只在聊天记录里」→ 约定落到文件后不再依赖记录，成立
-现象「每次都要重讲」→ 文件自动加载，不用重讲，成立
-```
-
-三层全部解释掉，收工。
-
-### 第 7 步 验地基假设
-
-**地基假设**：文件真的会被自动加载，而不是要手动提及。
-（不成立会怎样：Agent 照样不知道约定，方案完全没用 → 是地基）
-
-**当场验**：开一个全新会话，什么都不说，直接问「本项目的提交规范是什么」。
-
-**结果分支**：
-- 能答出文件里写的规范 → 地基成立
-- 答不出来 → 「放了文件就会被读」其实是历史习惯，不是硬约束，退回第 3 步重拆
-
-**边角假设**：无。
-
-**状态**：已关闭（验法就是开个新会话问一句，当场能做）。
+- A **Note** after the walk-back — *which layer stays unexplained if you only make half the changes*
+- A **Step 7** at the end — *which assumption is load-bearing, how to verify it right now, and where to retreat if it fails*
 
 ---
 
-## 示例 2 · 完整档（撞墙，走拆解与重建）
+## Example 1 · Light tier (reached an actionable cause, never hit a wall)
 
-### 现象
+### Symptom
 
-技能库攒了几百条，但 Agent 实际调用上的没几条，大部分躺在那儿没人碰。
+Every new session, the project conventions have to be explained all over again. Miss one and the agent falls back to its own habits.
 
-### 追问链
-
-```
-为什么大部分技能没被用上？
-→ 因为 Agent 在需要的时候不知道它们存在
-  （依据：技能是平铺在一个大目录里的，没有按任务归类的入口）
-
-为什么 Agent 不知道它们存在？
-→ 因为技能全靠模型自己主动去翻目录、读说明
-  （依据：主程序运行路径里没有任何一处强制加载或路由技能）
-
-为什么设计成靠模型自觉去翻？
-→ 「技能就是写成说明书，模型读了自然会用」——一直就是这么做的
-  （依据：整套技能生成流程里，"造技能"环节 0 行可执行代码，全是给模型看的说明文档）
-```
-
-**第 3 层撞墙了。** 卡住的原话是「技能就是写成说明书，模型读了自然会用」——这就是靶子。
-
-### 靶子拆解
-
-**硬约束**（每条附违反后果）：
-
-| 硬约束 | 违反后果 |
-|---|---|
-| 上下文窗口有限，装不下几百条技能全文 | 全塞进去 → 挤掉当前任务信息，回答质量下降 |
-| 模型不会主动去读没被指到面前的文件 | 指望自觉 → 技能等于不存在，正是现在的现象 |
-| 技能内容会随上游代码更新而过期 | 不检测 → Agent 照着三年前做法操作，直接跑失败 |
-
-**历史习惯**（作废，可重选）：
-
-- 「技能 = 一份 Markdown 说明书」——说不出违反它会怎样，纯属沿袭
-- 「先攒数量，用不用得上以后再说」——没有任何机制检验是否被用上
-- 「验证写在说明书里就算验证过了」——运行时不检查，模型跳过也无人拦
-
-### 重建方案
-
-被证伪的约束是「模型读了自然会用」——第 2、3 层已证明它不成立。因此不能只在说明书层面修补，需要改结构：
-
-1. **加路由层**（对齐硬约束 1、2）：技能不再平铺，按任务类型建索引；Agent 接到任务时由索引挑出少数几条，只加载被挑中的，而不是指望它自己翻。
-2. **加保质期检测**（对齐硬约束 3）：每条技能记录自己依据的版本与文件清单，用脚本对比当前实际状态，输出「一致 / 变了 / 丢了」，过期的自动标记而不是继续被用。
-3. **验证改成硬闸门**（消除历史习惯第 3 条）：验证脚本必须返回明确的通过/不通过，后续步骤依赖这个状态；不通过就不许发布。
-
-### 反向校验
+### Chain
 
 ```
-第 3 层「靠模型自觉去翻」→ 路由层替它挑，不再靠自觉，成立
-第 2 层「Agent 不知道技能存在」→ 索引把相关技能推到面前，成立
-第 1 层「技能没被用上」→ 推送到 + 过期的被标记，用上的比例可测，成立
-现象「攒了几百条却没用上」→ 成立，且现在有指标能持续盯着
+Why explain them again every time?
+→ Because the conventions only exist in past chat history, which a new session can't read
+  (evidence: nothing is auto-loaded at session start)
+
+Why do the conventions only exist in chat history?
+→ Because there is no conventions file for agents at the project root
+  (evidence: no AGENTS.md / CLAUDE.md or equivalent exists at the root)
 ```
 
-四层全部解释掉。**注意**：如果只做了第 3 条（验证闸门）而没做路由，第 2 层就解释不掉——技能再合格，Agent 照样找不到。这正是反向校验的价值。
+**Stop here.** Layer two is already a concrete, actionable cause. Nothing hit "everyone does it this way," so no decomposition or rebuild is needed.
 
-### 第 7 步 验地基假设
+### Solution
 
-**地基假设**：`[假设]` 加了路由后，被实际调用的技能数量会明显上升。
-（不成立会怎样：Agent 照样找不到技能，整套重建白做 → 是地基）
+Put a conventions file at the project root covering commit format, directory responsibilities, and hard prohibitions. Have it auto-load every session.
 
-**当场验**：先只给一个高频任务类型建索引，跑十次真实任务，数被加载的技能条数。
+### Walk-back
 
-**结果分支**：
-- 上升 → 地基成立，再做下面两条边角的
-- 没上升 → 「模型不会主动去读没被指到面前的文件」这条硬约束判错了，退回第 3 步重拆
+```
+Layer 2 "no conventions file"     → the solution creates exactly that file. Accounted for.
+Layer 1 "conventions live in chat" → once written to a file, they no longer depend on history. Accounted for.
+Symptom "re-explaining every time" → auto-loaded, so no re-explaining. Accounted for.
+```
 
-**边角假设**（挂着，边做边看）：
+All three layers accounted for. Done.
 
-| 假设 | 验法 |
-|---|---|
-| 过期检测能抓出真问题，而非全是误报 | 挑十条最老的技能跑一遍对比脚本，人工看结果准不准 |
-| 硬闸门不会拖慢正常发布 | 拿一条已知合格的技能走完整流程，记录耗时 |
+### Step 7 — Verify the ground
 
-这两条即使不成立，也只是砍掉对应那一块，路由层照样立得住 → 归边角。
+**Load-bearing assumption**: the file really is auto-loaded, rather than needing to be mentioned by hand.
+(If false: the agent still doesn't know the conventions, and the solution is worth nothing → load-bearing.)
 
-**状态**：待验证。十次任务没跑完之前，不许把「加路由有效」写成结论。
+**Verify now**: open a brand-new session, say nothing, and ask "what is this project's commit convention?"
+
+**Result branches**:
+- It answers with what the file says → ground holds
+- It can't → "dropping a file there means it gets read" was an inherited habit, not a real constraint. Back to Step 3, re-split.
+
+**Peripheral assumptions**: none.
+
+**Status**: closed (the test is opening a new session and asking one question — doable on the spot).
 
 ---
 
-## 示例 3 · 完整档 · 股票投资
+## Example 2 · Full tier (hit a wall, ran decomposition and rebuild)
 
-### 现象
+### Symptom
 
-跟着推荐和热点做交易，每一笔单看都「有道理」，一年下来账户是亏的。
+The skill library has grown to hundreds of entries, but the agent actually uses very few. Most of them sit there untouched.
 
-### 追问链
+### Chain
 
 ```
-为什么每笔都有道理，整体却亏？
-→ 因为那些道理都是事后能讲通的故事，没有事前可验证的预期
-  （依据：交易记录里没有任何一笔写过「预期到什么价、什么情况认错离场」）
+Why are most skills never used?
+→ Because the agent doesn't know they exist at the moment it needs them
+  (evidence: skills are laid out flat in one big directory, with no task-oriented entry point)
 
-为什么没有事前预期？
-→ 因为买卖依据是「别人说好」和「感觉要涨」
-  （依据：记录里的理由是消息、热点、群里观点）
+Why doesn't the agent know they exist?
+→ Because it's entirely on the model to go browse the directory and read the docs by itself
+  (evidence: nowhere in the production runtime path is a skill force-loaded or routed)
 
-为什么拿别人的判断当依据？
-→ 「大家都在看这些指标和消息，跟着看总不会错」——一直就是这么做的
+Why was it designed to rely on the model browsing on its own?
+→ "A skill is a written guide; once the model reads it, it'll naturally use it" — that's always how it was done
+  (evidence: across the whole skill-generation pipeline, the "create a skill" stage has zero executable code — it's all instructions written for the model)
 ```
 
-**第 3 层撞墙。** 靶子是「跟着大家看的信息不会错」。
+**Layer three hits the wall.** The stalling sentence is *"a skill is a written guide; once the model reads it, it'll naturally use it."* That's the target.
 
-### 靶子拆解
+### Target split
 
-**硬约束**：
+**Real constraints** (each with its violation consequence):
 
-| 硬约束 | 违反后果 |
+| Real constraint | What goes wrong if violated |
 |---|---|
-| 收益 = 价格变化 × 仓位 − 成本（手续费、税、滑点） | 不算成本 → 换手越勤被磨掉越多 |
-| 公开信息一旦广为人知，就已反映在价格里 | 以为有信息优势 → 实际在接最后一棒 |
-| 本金亏 50% 要涨 100% 才回本 | 一次重仓失误可能永久出局 |
-| 时间精力有限，跟不完全部信息 | 只能被动接受别人的结论 |
+| The context window is finite and cannot hold hundreds of full skill texts | Load them all → crowd out the current task, answer quality drops |
+| A model does not proactively read files that were never put in front of it | Rely on initiative → the skills might as well not exist, which is exactly today's symptom |
+| Skill content goes stale as upstream code changes | No detection → the agent follows a three-year-old procedure and the run fails outright |
 
-**历史习惯**（作废，可重选）：
+**Inherited habits** (void, re-choosable):
 
-- 「跟着热点和消息做」——公开消息早被定价，跟随没有优势
-- 「跌了就补仓摊低成本」——你的成本价是心理账户，市场根本不知道
-- 「止损等于认错，扛着总会回来」
+- "A skill = one Markdown guide" — nobody can say what breaks if this is false; pure inheritance
+- "Accumulate volume first, worry about usage later" — no mechanism ever checks whether anything got used
+- "Writing verification into the guide counts as verification" — the runtime never checks, and nobody stops the model from skipping it
 
-### 重建方案
+### Rebuilt solution
 
-被证伪的约束是「跟着大家看的信息不会错」——第 2、3 层已证明公开信息已被定价，跟随无优势。因此不能靠「选更好的消息源」修补，得改结构：
+The falsified constraint is *"once the model reads it, it'll naturally use it"* — layers two and three already proved it false. So patching at the guide level won't do; the structure has to change:
 
-1. **事前写清才许下单**：为什么现在买、预期到什么价、什么信号出现就认错、仓位多少。写不出来就不下单。（对齐硬约束 1、2）
-2. **单笔仓位设死上限**：任何一次亏损不能伤到本金的既定比例。（对齐硬约束 3）
-3. **承认没有信息优势**：大部分资金走低成本、低换手、长期持有；主动操作只留一小笔当实验。（对齐硬约束 2、4）
-4. **每月对账**：把实际收益和「闭眼买同一个指数不动」比一次。跑不赢，就说明主动操作没创造价值。
+1. **Add a routing layer** (addresses constraints 1, 2): stop laying skills out flat; index them by task type. When a task arrives, the index selects a handful, and only the selected ones get loaded — instead of hoping the model browses on its own.
+2. **Add staleness detection** (addresses constraint 3): each skill records the version and file list it was based on. A script compares that against current reality and reports `same / changed / missing`. Stale skills get flagged automatically instead of staying in rotation.
+3. **Turn verification into a hard gate** (eliminates inherited habit #3): the verification script must return an explicit pass/fail, and downstream steps depend on that status. Fail means no publish.
 
-### 反向校验
+### Walk-back
 
 ```
-第 3 层「跟大家看同样的信息」→ 承认无优势、默认被动，成立
-第 2 层「用别人判断当依据」→ 事前必须自己写出可验证预期，成立
-第 1 层「只有事后故事」→ 有预期就能事后判对错，不再靠故事，成立
-现象「一年下来亏」→ 有对账基线，能持续测出是否真创造价值，成立
+Layer 3 "relies on the model browsing on its own" → routing selects for it. Accounted for.
+Layer 2 "agent doesn't know skills exist"          → the index pushes relevant ones in front of it. Accounted for.
+Layer 1 "skills go unused"                         → pushed in + stale ones flagged; usage becomes measurable. Accounted for.
+Symptom "hundreds accumulated, almost none used"   → accounted for, and now there's a metric to keep watching.
 ```
 
-**注意**：只做第 1 条（写预期）而不做第 4 条（对账），现象层就交代不掉——你依然不知道整体是赚是亏，只是每笔看起来更有章法。
+All four layers accounted for. **Note**: if you only did item 3 (the verification gate) and skipped routing, layer two would remain unaccounted for — however qualified a skill is, the agent still can't find it. That's what the walk-back is for.
 
-### 第 7 步 验地基假设
+### Step 7 — Verify the ground
 
-**地基假设**：`[假设]` 你的主动操作长期跑不赢闭眼持有同一个指数。
-（不成立会怎样：如果你真能持续跑赢，「承认没有信息优势」这条硬约束就是判错的，整个「被动为主」的方案不成立 → 是地基）
+**Load-bearing assumption**: `[assumption]` once routing is added, the number of skills actually invoked rises noticeably.
+(If false: the agent still can't find skills and the entire rebuild was wasted → load-bearing.)
 
-**当场验**：拿去年全部交易记录，和同期指数收益对比一次。**用已有数据，现在就能做，不用等。**
+**Verify now**: index just *one* high-frequency task type, run ten real tasks, count how many skills got loaded.
 
-**结果分支**：
-- 跑不赢 → 地基成立，方案照做
-- 跑赢了 → 退回第 3 步重拆。「公开信息已被定价」这条被你的实际记录证伪了，得重新查你到底凭什么赢、这个凭什么能不能持续
+**Result branches**:
+- It rises → ground holds, then go do the two peripheral items
+- It doesn't → the constraint "a model does not proactively read files never put in front of it" was mis-judged. Back to Step 3, re-split.
 
-**边角假设**：
+**Peripheral assumptions** (leave open, watch while doing):
 
-| 假设 | 验法 |
+| Assumption | Test |
 |---|---|
-| 成本到底吃掉多少 | 把去年手续费 + 滑点加总，除以本金 |
+| Staleness detection catches real problems rather than producing only false positives | Run the comparison script on the ten oldest skills, eyeball whether the results are accurate |
+| The hard gate doesn't slow down normal publishing | Take one known-good skill through the full flow and record the time |
 
-成本这条只影响「该把换手降到多低」，不影响方案立不立得住 → 归边角。
+If either of these turns out false, you only cut that one piece — the routing layer still stands → peripheral.
 
-**状态**：待验证。地基这条是**下重仓之前必须先跑的对账**，它同时也是后面所有判断的基线。
+**Status**: pending. Until the ten runs are done, "routing works" must not be written up as a conclusion.
 
 ---
 
-## 示例 4 · 完整档 · 代码查 bug（反复出现的那一类）
+## Example 3 · Full tier · Stock investing
 
-> **边界**：如果是「某个函数现在报错了」这种单次可复现的故障，走调试流程（如 `systematic-debugging`）。
-> 本例针对的是**同一类 bug 修完又冒出来**——那属于结构问题，才归这个 skill 管。
+### Symptom
 
-### 现象
+Trading on tips and hot themes. Every single trade "made sense" on its own. The year ended at a loss.
 
-同一类 bug 反复出现：空值和边界没处理，修掉一个，过阵子别处又冒一个。
-
-### 追问链
+### Chain
 
 ```
-为什么修完又冒出来？
-→ 因为每次只改了出问题的那一行，没查还有哪里是同样写法
-  （依据：修复记录都是单点改动，没有一次做过全局搜索）
+Why did every trade make sense yet the whole lost money?
+→ Because those reasons were stories that hold up in hindsight, with no testable expectation set beforehand
+  (evidence: not one entry in the trade log ever wrote down "expected to reach X, exiting if Y happens")
 
-为什么不做全局排查？
-→ 因为没有能自动发现同类写法的手段
-  （依据：项目的静态检查规则不覆盖这类问题）
+Why was there no prior expectation?
+→ Because the basis for buying and selling was "someone said it's good" and "feels like it'll go up"
+  (evidence: the recorded reasons are news, hot themes, group chat opinions)
 
-为什么没加这条检查规则？
-→ 「测试写了就够了，出了问题再修」——一直就是这么干的
+Why use other people's judgment as the basis?
+→ "Everyone watches these same indicators and this same news — following along can't be wrong." That's always how it was done.
 ```
 
-**第 3 层撞墙。** 靶子是「测试写了就够了，出问题再修」。
+**Layer three hits the wall.** The target is *"following the information everyone watches can't be wrong."*
 
-### 靶子拆解
+### Target split
 
-**硬约束**：
+**Real constraints**:
 
-| 硬约束 | 违反后果 |
+| Real constraint | What goes wrong if violated |
 |---|---|
-| 人会漏，重复性检查必须交给机器 | 靠自觉排查 → 同类 bug 必然再来 |
-| 没有自动检查，每次改动都可能重新引入同一问题 | 修一次只管一次 |
-| 修复必须被测试锁住 | 改坏了别处也无人知晓 |
+| Return = price change × position size − costs (fees, tax, slippage) | Ignore costs → the more you churn, the more gets ground away |
+| Once public information is widely known, it is already reflected in the price | Believe you have an edge → you're actually taking the other side of the last trade |
+| Losing 50% of capital requires a 100% gain to break even | One oversized mistake can put you out permanently |
+| Time and attention are finite; you cannot track everything | You can only passively accept other people's conclusions |
 
-**历史习惯**（作废，可重选）：
+**Inherited habits** (void, re-choosable):
 
-- 「bug 是偶发的，修掉就完事」——偶发表象下是同一类写法散落多处
-- 「覆盖率高就说明质量好」——覆盖率不区分「测过了」和「测到边界了」
-- 「出问题再修比事前预防省事」——反复修同类问题的总成本远高于加一条规则
+- "Trade the hot themes and the news" — public news is already priced in; following it carries no edge
+- "Average down when it drops to lower your cost basis" — your cost basis is a mental account; the market has never heard of it
+- "Stopping out is admitting you were wrong; hold and it'll come back"
 
-### 重建方案
+### Rebuilt solution
 
-被证伪的约束是「测试写了就够了」——同类 bug 反复出现这件事本身就证明它不够。
+The falsified constraint is *"following the information everyone watches can't be wrong"* — layers two and three already showed public information is priced in, so following carries no edge. Therefore "find better news sources" cannot fix this; the structure has to change:
 
-1. **先复用现成工具**：语言自带的 linter、类型检查能不能表达这类约束？能就直接开，不自己造。（默认复用的刹车）
-2. 现成规则表达不了，才写一条自定义静态检查，接进提交前检查
-3. **每修一个 bug，先全局搜同类写法一次性清完**，再提交
-4. **每个修掉的 bug 配一个能复现它的测试**：先让测试红，再让它绿
+1. **No order without writing it down first**: why buy now, what price you expect, what signal means you were wrong and you exit, and the position size. Can't write it → don't place the order. (Addresses constraints 1, 2)
+2. **Hard cap per position**: no single loss may damage more than a fixed fraction of capital. (Addresses constraint 3)
+3. **Concede there is no information edge**: the bulk of capital goes low-cost, low-turnover, long-hold. Active trading gets one small slice, treated as an experiment. (Addresses constraints 2, 4)
+4. **Reconcile monthly**: compare actual returns against "blindly holding the same index and doing nothing." Underperform it, and your active trading created no value.
 
-### 反向校验
+### Walk-back
 
 ```
-第 3 层「靠测试兜底」→ 静态规则 + 复现测试双保险，成立
-第 2 层「没有检查手段」→ 规则接进提交前检查，成立
-第 1 层「只改一行不排查」→ 修 bug 必须全局搜同类，成立
-现象「同类 bug 反复出现」→ 新增的被拦住，存量的一次清完，成立
+Layer 3 "watching what everyone watches"  → concede no edge, default to passive. Accounted for.
+Layer 2 "using other people's judgment"   → you must write your own testable expectation first. Accounted for.
+Layer 1 "only hindsight stories"          → with expectations set, outcomes become judgeable, not narrated. Accounted for.
+Symptom "the year lost money"             → with a reconciliation baseline, value creation stays measurable. Accounted for.
 ```
 
-**注意**：只做第 4 条（配复现测试）而不做第 1、2 条，第 2 层就交代不掉——测试只能保证「这一处不再犯」，管不了别处同样的写法。
+**Note**: do only item 1 (write expectations) without item 4 (reconcile), and the symptom layer stays unaccounted for — you still won't know whether the whole is winning or losing. Each trade just looks more disciplined.
 
-### 第 7 步 验地基假设
+### Step 7 — Verify the ground
 
-**地基假设**：`[假设]` 这类 bug 占全部 bug 的大头。
-（不成立会怎样：如果它只占零星几个，为它加一条全局静态规则就是过度设计，方案不该做 → 是地基）
+**Load-bearing assumption**: `[assumption]` your active trading underperforms blindly holding the same index over the long run.
+(If false: if you genuinely do outperform consistently, then "concede there is no information edge" was mis-judged, and the whole "passive-first" plan collapses → load-bearing.)
 
-**当场验**：把最近 20 条修复记录按类型归类数一遍。**翻记录就行，不用写代码。**
+**Verify now**: take last year's full trade log and compare it against the same-period index return. **Uses data you already have — doable right now, no waiting.**
 
-**结果分支**：
-- 占比高 → 地基成立，动手加规则
-- 占比很低 → 退回第 4 步。「重复性检查必须交给机器」这条硬约束仍然成立，但靶子选错了，换成真正占大头的那一类
+**Result branches**:
+- Underperforms → ground holds, execute the plan
+- Outperforms → back to Step 3, re-split. "Public information is already priced in" has been falsified by your own records. Now go find out what you actually won on, and whether that can persist.
 
-**边角假设**：
+**Peripheral assumptions**:
 
-| 假设 | 验法 |
+| Assumption | Test |
 |---|---|
-| 静态规则误报率可接受 | 先只对改动过的文件跑，看报出来的有多少是真问题 |
+| How much do costs actually eat | Sum last year's fees + slippage, divide by capital |
 
-误报多可以把规则收窄或改成提示，不用推翻方案 → 归边角。
+The cost item only affects *how low turnover should go*; it doesn't decide whether the plan stands → peripheral.
 
-**状态**：待验证。数完 20 条记录就能关闭，成本极低，没有理由拖着。
+**Status**: pending. This load-bearing test is **the reconciliation you must run before taking any large position** — and it doubles as the baseline for every later judgment.
 
 ---
 
-## 示例 5 · 完整档 · 算法实验构建
+## Example 4 · Full tier · Debugging code (the recurring class)
 
-### 现象
+> **Boundary**: if it's "this function is throwing right now" — a single reproducible failure — go to a debugging workflow (e.g. `systematic-debugging`).
+> This example covers **the same class of bug returning after being fixed** — a structural problem, which is what this skill is for.
 
-跑了几个版本的实验，分数忽高忽低，说不清方法到底有没有效。
+### Symptom
 
-### 追问链
+The same class of bug keeps recurring: unhandled nulls and boundaries. Fix one, and a while later another pops up somewhere else.
+
+### Chain
 
 ```
-为什么说不清有没有效？
-→ 因为每次跑的设置不一样，分数之间根本不可比
-  （依据：不同轮次用了不同的数据划分、不同的组件接线、不同的基线来源）
+Why does it come back after being fixed?
+→ Because each time only the offending line was changed; nobody checked where else the same pattern appears
+  (evidence: every fix record is a single-point change, not one of them ran a global search)
 
-为什么设置会不一样？
-→ 因为没有固定的实验协议，每次凭当时的想法接线
-  （依据：没有统一配置入口，参数散落在各处代码里）
+Why not do a global sweep?
+→ Because there's no means of automatically detecting the same pattern elsewhere
+  (evidence: the project's static checks don't cover this class of problem)
 
-为什么不定协议？
-→ 「先跑出来看效果，协议以后再补」——一直就是这么干的
+Why wasn't such a check added?
+→ "The tests are enough; if something breaks we'll fix it then." That's always how it was done.
 ```
 
-**第 3 层撞墙。** 靶子是「先跑出来看效果，协议以后再补」。
+**Layer three hits the wall.** The target is *"the tests are enough; fix it when it breaks."*
 
-### 靶子拆解
+### Target split
 
-**硬约束**：
+**Real constraints**:
 
-| 硬约束 | 违反后果 |
+| Real constraint | What goes wrong if violated |
 |---|---|
-| 分数只有在设置完全相同时才可比 | 波动来自设置差异而非方法差异 → 结论错 |
-| 基线必须由同一套流程跑出来，不能直接引用别处论文的数字 | 环境差异被算成方法优势 |
-| 验证某方法必须走该方法自身的真实代码路径，不能用手写替身顶替核心组件 | 跑出的分数不代表该方法 → 结论无效 |
-| 实验要能被别人和三个月后的自己原样重跑 | 无法复现，等于没做 |
+| People miss things; repetitive checking must be handed to a machine | Rely on diligence → the same class of bug will definitely return |
+| Without an automated check, every change can reintroduce the same problem | One fix covers one occurrence only |
+| A fix must be locked in by a test | Regressions elsewhere go unnoticed |
 
-**历史习惯**（作废，可重选）：
+**Inherited habits** (void, re-choosable):
 
-- 「先跑出来看效果，协议以后补」——补不上，且已产生的结论全是脏的
-- 「用简化版快速验证大方向」，然后拿这个数下结论——简化接线不代表方法本意
-- 「哪种接法分数高就用哪种」——按分数挑接线等于在测试集上调参
-- 「跑分高就是有效」——没有对朴素基线的对比，可能只是设置带来的
+- "Bugs are one-offs; fix it and move on" — beneath the one-off appearance, the same pattern is scattered across many places
+- "High coverage means good quality" — coverage doesn't distinguish "tested" from "tested at the boundary"
+- "Fixing on demand is cheaper than preventing" — the cumulative cost of repeatedly fixing the same class far exceeds adding one rule
 
-### 重建方案
+### Rebuilt solution
 
-被证伪的约束是「先看效果再补协议」——分数不可比这件事已经让所有历史结论作废。
+The falsified constraint is *"the tests are enough"* — the recurrence of the same bug class is itself the proof that it isn't.
 
-1. **协议先行**：数据划分、评测指标、随机种子数、基线清单，全部写进一个统一配置，任何实验都从它出发
-2. **必须有朴素基线**：最笨的办法用同一套流程跑出来。方法的增量价值 = 相对它的差值
-3. **方法组件一律用真实实现接线**，禁止手写替身。确实需要跑简化版时，结果里必须显式标注「诊断代理，不代表方法上限」
-4. **每次跑分记录三样**：配置指纹、代码版本、数据校验和。缺一样即视为结果不可信
-5. **默认复用现成评测框架**，只有它表达不了本协议时才自己写
+1. **Reuse existing tooling first**: can the language's built-in linter or type checker express this class of constraint? If yes, just turn it on — don't build anything. (The reuse-by-default brake)
+2. Only if existing rules can't express it, write one custom static check and wire it into pre-commit
+3. **Every bug fix starts with a global sweep** for the same pattern, cleaned up in one pass, then commit
+4. **Every fixed bug gets a test that reproduces it**: make the test fail first, then make it pass
 
-### 反向校验
+### Walk-back
 
 ```
-第 3 层「先跑再补协议」→ 协议先行，成立
-第 2 层「设置凭当时想法」→ 统一配置入口，成立
-第 1 层「分数不可比」→ 同协议同流程，成立
-现象「说不清有没有效」→ 有朴素基线对比 + 可复现记录，能明确回答，成立
+Layer 3 "rely on tests to catch it"      → static rule + reproduction test, double coverage. Accounted for.
+Layer 2 "no means of detecting it"       → rule wired into pre-commit. Accounted for.
+Layer 1 "fix one line, no sweep"         → every fix requires a global sweep. Accounted for.
+Symptom "same class keeps recurring"     → new ones blocked, existing ones cleared in one pass. Accounted for.
 ```
 
-**注意**：只做第 1 条（统一配置）而不做第 2 条（朴素基线），现象层交代不掉——分数可复现了，但依然不知道方法比笨办法强在哪，很可能一样甚至更差。
+**Note**: do only item 4 (reproduction tests) without items 1 and 2, and layer two stays unaccounted for — a test can only guarantee "this one spot won't regress." It says nothing about the same pattern elsewhere.
 
-### 第 7 步 验地基假设
+### Step 7 — Verify the ground
 
-这个例子有**两条地基**，都得验，而且顺序不能颠倒。
+**Load-bearing assumption**: `[assumption]` this class accounts for the bulk of all bugs.
+(If false: if it's only a scattered handful, adding a project-wide static rule for it is over-engineering and shouldn't be done at all → load-bearing.)
 
-**地基 ①（优先级最高）**：朴素基线的分数是多少——**目前完全不知道**。
-（不成立会怎样：方法的增量价值 = 相对朴素基线的差值。基线数字不存在，这个差值就算不出来，「方法有效」这句话根本无法判真假 → 是地基）
-**当场验**：先把最笨的办法用同一套协议跑出来。其他一切都排在它后面。
+**Verify now**: take the last 20 fix records and classify them by type. **Just read the records — no code required.**
 
-**地基 ②**：`[假设]` 历史分数波动主要来自设置差异，不是方法差异。
-（不成立会怎样：如果波动真来自方法本身，那历史结论还有救，不必全部作废重跑 → 是地基，它决定要不要推倒重来）
-**当场验**：挑两个历史结论，用同一协议各重跑一次，看差值是否消失。
+**Result branches**:
+- High share → ground holds, go add the rule
+- Very low share → back to Step 4. The constraint "repetitive checking must be handed to a machine" still holds, but the target was picked wrong — swap in whatever class actually dominates
 
-**结果分支**：
-- 差值消失 → 证实是设置差异，历史结论全部作废，按新协议重来
-- 差值仍在 → 「分数只有在设置相同时才可比」这条被误用了，退回第 3 步重拆
+**Peripheral assumptions**:
 
-**边角假设**：无。这个例子里所有未验证项都直接决定结论真假，没有可以挂着的。
+| Assumption | Test |
+|---|---|
+| The static rule's false-positive rate is acceptable | Run it on changed files only, see how many findings are real problems |
 
-**状态**：待验证。**在地基 ① 跑出数字之前，任何「我的方法有效」的说法都只能算猜测**，不许写进论文、不许拿去做决策。
+If false positives are high, narrow the rule or downgrade it to a hint — no need to overturn the plan → peripheral.
+
+**Status**: pending. Counting 20 records closes it. The cost is trivial; there's no reason to defer.
 
 ---
 
-## 两档的差别一眼看清
+## Example 5 · Full tier · ML experiment design
 
-| | 轻量档 | 完整档 |
+### Symptom
+
+Several versions of the experiment have been run. Scores swing up and down. Nobody can say whether the method actually works.
+
+### Chain
+
+```
+Why can't anyone say whether it works?
+→ Because the setup differed between runs, so the scores aren't comparable at all
+  (evidence: different rounds used different data splits, different component wiring, different baseline sources)
+
+Why did the setup differ?
+→ Because there's no fixed experimental protocol; each run was wired according to whatever seemed right at the time
+  (evidence: no unified config entry point — parameters are scattered across the codebase)
+
+Why was no protocol defined?
+→ "Get results first, add the protocol later." That's always how it was done.
+```
+
+**Layer three hits the wall.** The target is *"get results first, add the protocol later."*
+
+### Target split
+
+**Real constraints**:
+
+| Real constraint | What goes wrong if violated |
+|---|---|
+| Scores are comparable only when the setup is identical | Swings come from setup differences, not method differences → wrong conclusions |
+| Baselines must be produced by the same pipeline; numbers quoted from other papers don't count | Environmental differences get credited as method advantage |
+| Verifying a method must run that method's own real code path — no hand-written stand-ins for its core components | The score doesn't represent the method → the conclusion is invalid |
+| An experiment must be re-runnable as-is by others, and by you three months from now | Not reproducible, which means it wasn't done |
+
+**Inherited habits** (void, re-choosable):
+
+- "Get results first, add the protocol later" — it never gets added, and every conclusion already produced is contaminated
+- "Run a simplified version to sanity-check the direction," then draw conclusions from that number — simplified wiring doesn't represent the method's intent
+- "Use whichever wiring scores highest" — picking wiring by score is tuning on the test set
+- "A high score means it works" — without comparison to a naive baseline, the gain may come entirely from the setup
+
+### Rebuilt solution
+
+The falsified constraint is *"get results first, add the protocol later"* — the incomparability of the scores has already voided every historical conclusion.
+
+1. **Protocol first**: data splits, metrics, number of random seeds, and the baseline list all go into one unified config. Every experiment starts from it.
+2. **A naive baseline is mandatory**: run the dumbest possible approach through the same pipeline. The method's incremental value = the gap against it.
+3. **Method components must be wired with their real implementations** — no hand-written stand-ins. When a simplified run genuinely is needed, the result must be explicitly labeled `diagnostic proxy — does not represent the method's ceiling`.
+4. **Record three things per run**: config fingerprint, code version, data checksum. Missing any one → the result is not trustworthy.
+5. **Reuse an existing evaluation framework by default**; write your own only if it cannot express this protocol.
+
+### Walk-back
+
+```
+Layer 3 "run first, protocol later"    → protocol comes first. Accounted for.
+Layer 2 "setup decided ad hoc"         → unified config entry point. Accounted for.
+Layer 1 "scores not comparable"        → same protocol, same pipeline. Accounted for.
+Symptom "can't say whether it works"   → naive-baseline comparison + reproducible records answer it definitively. Accounted for.
+```
+
+**Note**: do only item 1 (unified config) without item 2 (naive baseline), and the symptom layer stays unaccounted for — scores become reproducible, but you still don't know where the method beats the dumb approach. Quite possibly it doesn't.
+
+### Step 7 — Verify the ground
+
+This example has **two load-bearing assumptions**. Both must be verified, and the order cannot be swapped.
+
+**Ground ① (highest priority)**: what the naive baseline scores — **currently completely unknown**.
+(If unavailable: the method's incremental value = the gap against the naive baseline. Without the baseline number the gap can't be computed, so the sentence "the method works" cannot even be judged true or false → load-bearing.)
+**Verify now**: run the dumbest approach through the same protocol first. Everything else queues behind it.
+
+**Ground ②**: `[assumption]` historical score swings came mainly from setup differences, not method differences.
+(If false: if the swings genuinely came from the method itself, the historical conclusions are salvageable and don't all need re-running → load-bearing, because it decides whether to start over.)
+**Verify now**: pick two historical conclusions, re-run each under the same protocol, and see whether the gap disappears.
+
+**Result branches**:
+- Gap disappears → confirms it was setup differences. All historical conclusions are void; redo under the new protocol.
+- Gap persists → "scores are comparable only when the setup is identical" was misapplied. Back to Step 3, re-split.
+
+**Peripheral assumptions**: none. Every unverified item here directly decides whether the conclusion is true or false; nothing can be left open.
+
+**Status**: pending. **Until Ground ① produces a number, any claim of "my method works" is a guess** — not to be written into a paper, not to be used for decisions.
+
+---
+
+## The two tiers at a glance
+
+| | Light tier | Full tier |
 |---|---|---|
-| 追问撞到「大家都这样」 | 没有 | 有 |
-| 拆解硬约束 / 历史习惯 | 跳过 | 必做 |
-| 是否可能重建方案 | 不会 | 可能，但默认仍是复用 |
-| 反向校验 | 必做 | 必做 |
-| 典型长度 | 十几行 | 一页左右 |
-| 本文示例 | 示例 1 | 示例 2、3、4、5 |
+| Drilling hit "everyone does it this way" | No | Yes |
+| Split into constraints / habits | Skipped | Required |
+| May rebuild the solution | No | Possibly — but reuse is still the default |
+| Walk-back | Required | Required |
+| Ground verification | Required | Required |
+| Typical length | A dozen lines | About a page |
+| Examples here | #1 | #2, #3, #4, #5 |
 
-**反向校验两档都不能省**——它是唯一能证明「这次分析到位了」的步骤。
+**Neither tier may skip the walk-back** — it's the only proof the analysis reached the root.
 
-## 关于「状态」这一栏
+## About the `status` field
 
-五个例子里，只有示例 1 能当场关闭（验法就是开个新会话问一句）。其余四个都停在「待验证」——**这不是没做完，是如实标注**。
+Of the five examples, only #1 closes on the spot (its test is opening a new session and asking one question). The other four remain **pending** — and that is not unfinished work, it is honest labeling.
 
-在地基假设拿到实测证据之前，输出就该挂着「待验证」，不能当成已成立的结论去做大动作。示例 5 最典型：朴素基线的分数还没跑出来，那么「方法有效」这句话此刻连真假都谈不上。
+Until a load-bearing assumption has measured evidence, the output stays marked pending and must not be treated as an established conclusion for anything consequential. Example 5 is the clearest case: the naive baseline hasn't been run, so "the method works" cannot currently be called true *or* false.
 
-注意四个待验证例子的地基验法成本：翻交易记录、数 20 条修复记录、跑十次任务、跑一次笨办法——**没有一条需要新建系统**。地基验证应该总是很便宜，如果它很贵，通常说明你挑的地基不对。
+Look at what the four pending ground tests actually cost: read a trade log, count 20 fix records, run ten tasks, run one dumb baseline. **Not one of them requires building a new system.** Ground verification should always be cheap — if it's expensive, you probably picked the wrong assumption.
 
-## 五个例子里反复出现的同一个坑
+## The same trap in every example
 
-每个完整档示例的「注意」都指出：**只做一半的改动，某一层就交代不掉**。
+Each full-tier example's **Note** points at the same failure: **make only half the changes and some layer stays unaccounted for.**
 
-| 示例 | 只做一半会漏掉哪层 |
+| Example | Half a fix leaves this unsolved |
 |---|---|
-| 技能库没被用上 | 只加验证闸门、不加路由 → 「Agent 找不到技能」这层没解决 |
-| 股票投资 | 只写事前预期、不做对账 → 「整体到底是赚是亏」这层没解决 |
-| 反复出现的 bug | 只配复现测试、不加静态检查 → 「别处同样写法」这层没解决 |
-| 算法实验 | 只统一配置、不加朴素基线 → 「比笨办法强在哪」这层没解决 |
+| Skill library unused | Verification gate but no routing → "the agent can't find the skill" |
+| Stock investing | Prior expectations but no reconciliation → "is the whole winning or losing" |
+| Recurring bugs | Reproduction tests but no static check → "the same pattern elsewhere" |
+| ML experiments | Unified config but no naive baseline → "where does it beat the dumb approach" |
 
-这就是为什么反向校验不能跳：**它专门抓「看起来重构了、其实只补了症状」这种情况。**
+This is exactly why the walk-back cannot be skipped: **it exists to catch "looks like a rebuild, was actually another symptom patch."**

@@ -1,232 +1,336 @@
-# RootFirst
+<div align="center">
 
-**5Why × First Principles — fused at the exact point where drilling stops working.**
+# 🔍 FirstWhy
 
-一个把「5Why 追问」和「第一性原理」真正接在一起的 Agent Skill。
-接口是追问卡住的那一刻，出口是一条有实测证据支撑的结论。
+### Ask why until you hit the wall. Then break the wall.
 
-[English](#english) · [中文](#中文)
+**5Why × First Principles**, fused at the exact point where drilling stops working —
+and closed with a verification gate that refuses to let coherence pass for truth.
+
+An Agent Skill for Qoder, Claude Code, and any agent that reads `SKILL.md`.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
+[![Format](https://img.shields.io/badge/format-SKILL.md-blue.svg)](SKILL.md)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#-design-notes)
+[![Works with](https://img.shields.io/badge/works%20with-Qoder%20%7C%20Claude%20Code-orange.svg)](#-quick-start)
+
+[**Quick Start**](#-quick-start) · [**How It Works**](#-how-it-works) · [**Examples**](#-worked-examples) · [**Anti-patterns**](#-anti-patterns) · [**SKILL.md**](SKILL.md)
+
+</div>
 
 ---
 
-## English
+## 💡 TL;DR
 
-### Why not just use them separately
+Most root-cause analysis stops one layer too early — at the layer where the answer becomes *"that's just how it's done."*
 
-**5Why alone** drills down until it hits a wall — "that's just how it's done", "everyone does it this way", "it's the convention". A drill cannot argue with a convention. So you fix a habit, call it a root cause, and the problem comes back wearing a different face.
+FirstWhy treats that sentence not as an answer but as **the target**. It splits it into real constraints and inherited habits, rebuilds from the constraints alone, walks back up the chain to prove every layer is accounted for, and then **verifies the one assumption the whole solution stands on**.
 
-**First principles alone** can break through any wall, but it doesn't know where to start. A complex problem decomposes in ten directions; decomposing all ten is unbounded work, and you end up reinventing the wheel without ever touching the original pain.
+Invoke it with `/firstwhy <your problem>`.
 
-Each one's weakness is exactly what the other fixes.
+---
 
-### The fusion: the stall point is the handoff point
+## 🔥 Why the two classics fail alone
 
-Ask why until the answer hardens into an unexamined assumption. **That sentence is the target.** Split it in two:
+### 5Why hits a wall it cannot argue with
 
-- **Real constraints** — physics, math, genuine cost/time/headcount ceilings, law, safety, compatibility. Each one must state what concretely goes wrong if violated.
-- **Inherited habits** — someone's temporary choice back then, "industry convention" nobody can justify, a shortcut taken to ship fast. These are **void** and can be re-chosen.
+The drill goes down until the answer becomes a convention: *"everyone does it this way"*, *"it's the standard"*, *"legacy reasons"*.
 
-Anything that cannot state a concrete consequence of violation goes in the habits pile.
+**A drill cannot argue with a convention.** So you fix a habit, label it a root cause, and the problem returns a month later wearing a different face.
 
-Then rebuild from the constraints only, walk back up the chain, and verify the load-bearing assumption.
+### First principles can break any wall but doesn't know where to start
 
-### The two steps that make it close
+It decomposes anything down to bedrock — but a complex problem decomposes in ten directions. Doing all ten is unbounded work, and you end up reinventing the wheel without ever touching the original pain.
 
-**Walking back up** catches half-fixes. Every worked example here shows the same failure: do only half the changes and some layer stays unexplained. Add a verification gate but no routing, and "the agent can't find the skill" is still unsolved — the skill being correct doesn't help if nothing surfaces it.
+### Each one's weakness is exactly what the other fixes
 
-**Verifying the load-bearing assumption** catches false ground. Logical coherence is not factual truth. Skip this and the whole method is just issuing itself a certificate.
+| | 5Why alone | First principles alone | **FirstWhy** |
+|---|---|---|---|
+| Can it break through "everyone does it this way"? | ❌ No | ✅ Yes | ✅ Yes |
+| Does it know where to start decomposing? | ✅ Yes | ❌ No | ✅ Yes |
+| Does it prove the fix covers every layer? | ❌ No | ❌ No | ✅ Yes |
+| Does it verify its own ground assumption? | ❌ No | ❌ No | ✅ Yes |
 
-| | Load-bearing | Peripheral |
-|---|---|---|
-| Test | "If this is false, does the solution still work?" **No** → load-bearing | Works, just less well → peripheral |
-| Action | **Verify now**, cheapest available method | Note it, watch while doing |
-| If it fails | Solution is void — go back and re-split the target | Adjust details, keep the skeleton |
-| Count | Usually one or two | Everything else |
+---
 
-> Load-bearing verification should always be cheap. If it's expensive, you probably picked the wrong assumption.
+## 🧠 The key insight: the stall point is the handoff point
 
-Until a load-bearing assumption has real evidence, the output is marked **pending** and must not be treated as an established conclusion for anything consequential.
+Ask why until the answer hardens into an unexamined assumption. **That sentence is the target.**
 
-### Flow
+Then split it:
+
+<table>
+<tr>
+<th width="50%">✅ Real constraints — these count</th>
+<th width="50%">🗑️ Inherited habits — void, re-choosable</th>
+</tr>
+<tr>
+<td>
+
+- Physically or mathematically unavoidable
+- Genuine ceilings on cost, time, headcount
+- Hard legal, safety, or compatibility requirements
+
+</td>
+<td>
+
+- Someone's temporary choice at the time
+- Carried forward, never questioned
+- "Industry convention" nobody can justify
+
+</td>
+</tr>
+</table>
+
+> **The test**: every real constraint must state *what concretely goes wrong if it is violated*.
+> Anything that cannot state a consequence goes in the habits pile.
+
+Drilling locates **one** target, so decomposition stays bounded. Decomposition breaks the shell, so drilling doesn't stall. Neither works without the other.
+
+---
+
+## ⚙️ How it works
 
 ```
 1 Pin down the symptom
 2 Ask why ──reached something actionable──→ 5 Walk back up → 6 List assumptions → 7 Verify ground → Close
-   │                                                ↑                        │
-   └─hit "everyone does it this way"→ 3 Split → 4 Rebuild ┘                  │
-                                                              assumption falsified
-                                                                    ↓
-                                                          back to step 3, re-split
+   │                                                ↑                          │
+   └─hit "everyone does it this way"→ 3 Split → 4 Rebuild ┘                    │
+                                                                  assumption falsified
+                                                                        ↓
+                                                              back to step 3, re-split
 ```
 
-**Closing condition**: every load-bearing assumption has measured evidence, or the target has been re-split and the new ground verified. Peripheral assumptions may stay open — demanding all of them be verified means the analysis never closes.
+| Step | What happens | Skip when |
+|---|---|---|
+| **1** Pin down the symptom | One sentence. No causes allowed. Ask if vague — never guess. | never |
+| **2** Ask why | Each layer needs evidence. Unevidenced guesses get marked `[assumption]`. **No preset round count** — stop at a stall or at something actionable. | never |
+| **3** Split the target | Constraints vs. habits. Anything with no stateable consequence is a habit. | you reached an actionable cause |
+| **4** Rebuild | **Reuse by default.** From-scratch design only when a constraint the existing solution depends on was falsified — and you must name which. | you reached an actionable cause |
+| **5** Walk back up | Account for every layer. Any layer unexplained → you patched a symptom → back to Step 4. | never |
+| **6** List assumptions | Every `[assumption]`, plus constraints lacking measured evidence. Each gets the cheapest possible test. | never |
+| **7** Verify the ground | Sort into load-bearing vs. peripheral. Verify load-bearing **now**. Fail → solution void → back to Step 3. | never |
 
-### Install
+### The two steps that actually close the loop
+
+Most frameworks stop at Step 4. FirstWhy doesn't, because Steps 5 and 7 catch two distinct failure modes:
+
+**Step 5 — Walk back up** catches *half-fixes*. Logical coherence across every layer. In all four full-tier examples here, making only half the changes leaves a layer unexplained:
+
+| Example | Half a fix leaves this unsolved |
+|---|---|
+| Skill library nobody uses | Verification gate but no routing → *"the agent can't find the skill"* |
+| Stock investing | Prior expectations but no reconciliation → *"is the whole winning or losing"* |
+| Recurring bug class | Reproduction tests but no static check → *"the same pattern elsewhere"* |
+| ML experiment design | Unified config but no naive baseline → *"where does it beat the dumb approach"* |
+
+**Step 7 — Verify the ground** catches *false ground*. Coherence is not truth. Skip this and the method is just issuing itself a certificate.
+
+| | Load-bearing | Peripheral |
+|---|---|---|
+| Test | "If this is false, does the solution still work?" **No** | Yes, just less well |
+| Action | **Verify now**, cheapest available test | Note it, watch while doing |
+| If it fails | Solution void → back to Step 3, re-split | Adjust details, keep the skeleton |
+| Count | Usually one or two | Everything else |
+
+> **Ground verification should always be cheap.** If it's expensive, you probably picked the wrong assumption.
+
+Until a load-bearing assumption has evidence, output is marked **`pending`** and must not be treated as an established conclusion for anything consequential.
+
+**Closing condition**: every load-bearing assumption verified, *or* the target re-split and the new ground verified. Peripheral assumptions may stay open — demanding all of them makes the analysis unclosable.
+
+---
+
+## 🚀 Quick start
 
 Flat layout, so one clone is the whole install:
 
 ```bash
 # Qoder
-git clone https://github.com/<your-username>/rootfirst ~/.qoder-cn/skills/rootfirst
+git clone https://github.com/h4444433333/firstwhy ~/.qoder-cn/skills/firstwhy
 
 # Claude Code
-git clone https://github.com/<your-username>/rootfirst ~/.claude/skills/rootfirst
+git clone https://github.com/h4444433333/firstwhy ~/.claude/skills/firstwhy
 
 # Any agent that reads SKILL.md
-git clone https://github.com/<your-username>/rootfirst <your-skills-dir>/rootfirst
+git clone https://github.com/h4444433333/firstwhy <your-skills-dir>/firstwhy
 ```
 
-Restart the agent so it reloads skills.
-
-### Usage
-
-```
-/rootfirst 我们的技能库攒了几百条，但实际被用上的没几条
-```
-
-Prefer the explicit command. Without it, the skill only activates in three situations: a requirement too vague to act on, a design tradeoff needing defensible justification, or the same problem returning after it was supposedly fixed. It stays out of everything else.
-
-Natural-language triggers: 5why, first principles, root cause, 根因分析, 第一性原理, 从根本上想想, 为什么总是.
-
-**Not for** single reproducible crashes or test failures — those belong in a debugging workflow with evidence and reproduction.
-
-### Output
-
-Two tiers, chosen by whether the drilling hit a wall:
-
-- **Light** — reached an actionable cause, no wall: symptom → chain → fix → walk-back → ground check. Around a dozen lines.
-- **Full** — hit a wall: adds target decomposition (constraints vs. habits), rebuild rationale, and why existing solutions can't be reused. About a page.
-
-Both tiers always include the walk-back and the ground check.
-
-### Files
-
-| File | Contents |
-|---|---|
-| [SKILL.md](SKILL.md) | The method: 7 steps, closing condition, tiered output format, 8 anti-patterns |
-| [examples.md](examples.md) | Five fully worked examples — one light tier, four full tier |
-
-The four full-tier examples cover skill libraries, stock investing, recurring bug classes, and ML experiment design.
-
-### Anti-patterns
-
-Eight are listed in [SKILL.md](SKILL.md#反模式出现即为失败). The three that bite hardest:
-
-1. **Padding to five whys** — layers four and five are usually filler. Stop at three if three is enough.
-2. **Treating a habit as a constraint** — "everyone uses X" is not a constraint.
-3. **Listing assumptions and moving on** — the judge is on paper but never seated on the bench.
+Restart the agent so it reloads skills. That's it — no dependencies, no build step, no config file.
 
 ---
 
-## 中文
-
-### 为什么不能分开用
-
-**只用 5Why**：往下钻，钻到某一层会突然钻不动——「当初就是这么设计的」「大家都这么做」「这是规范」。钻头没法反驳一句惯例，于是你修掉一个习惯，把它叫根因，问题过阵子换个样子又回来。
-
-**只用第一性原理**：它能砸穿任何墙，但不知道该从哪儿开始拆。一个复杂问题能拆十个方向，全拆就是无限扩张，最后轮子重新发明了一遍，原来那个痛根本没碰。
-
-两者的短板正好是对方能补的。
-
-### 融合点：卡住的那一层就是切换点
-
-往下追问，直到答案变成一句没被检验过的假设。**那句话就是靶子。** 拆成两堆：
-
-- **硬约束** —— 物理、数学、成本/时间/人力的真实上限、法规、安全、兼容性。每条必须说得出「违反它会发生什么具体的坏事」。
-- **历史习惯** —— 前人当时的临时选择、说不出理由的「业界惯例」、当初图快走的捷径。这些**全部作废**，可以重选。
-
-说不出违反后果的，一律归入习惯堆。
-
-然后只用硬约束重建方案，倒回追问链逐层交代，最后验掉承重的那条假设。
-
-### 让它真闭环的两步
-
-**反向校验**抓的是「只做一半」。这里的每个完整档例子都演示了同一个失败：只改一半，某一层就交代不掉。只加验证闸门不加路由，「Agent 找不到技能」这层照样没解决——技能再合格，没人把它推到面前也白搭。
-
-**验地基假设**抓的是「地基本身是假的」。逻辑自洽不等于事实为真。少了这步，整套方法就是自己给自己发合格证。
-
-| | 地基假设 | 边角假设 |
-|---|---|---|
-| 判定 | 问「这条不成立，方案还能用吗？」不能用 → 地基 | 能用、只是效果差些 → 边角 |
-| 处理 | **当场就验**，用最省事的验法 | 记下来，边做边看 |
-| 验不过 | **方案作废，退回重拆靶子** | 调细节，不动骨架 |
-| 数量 | 通常一两条 | 剩下全归这儿 |
-
-> 地基验证应该总是很便宜。如果它很贵，通常说明你挑的地基不对。
-
-地基假设拿到实测证据之前，输出必须标成**待验证**，不得当成已成立的结论去做大动作。
-
-### 流程
+## 📖 Usage
 
 ```
-1 锁定现象
-2 往下追问 ──追到能动手──→ 5 反向校验 → 6 列假设 → 7 验地基 → 关闭
-   │                                      ↑                  │
-   └─撞到「大家都这样」→ 3 拆靶子 → 4 重建 ┘                  │
-                                                     地基假设被证伪
-                                                          ↓
-                                                    退回第 3 步重拆
+/firstwhy our skill library has hundreds of entries but almost none get used
 ```
 
-**关闭条件**：地基假设全部有实测证据，或已回炉重拆、新地基已验。边角假设可以挂着——要求全验完，分析就永远关不掉。
-
-### 安装
-
-扁平结构，一条 clone 就是完整安装：
-
-```bash
-# Qoder
-git clone https://github.com/<your-username>/rootfirst ~/.qoder-cn/skills/rootfirst
-
-# Claude Code
-git clone https://github.com/<your-username>/rootfirst ~/.claude/skills/rootfirst
-
-# 任何读 SKILL.md 的 agent
-git clone https://github.com/<your-username>/rootfirst <你的-skills-目录>/rootfirst
+```
+/firstwhy should we build a custom evaluation harness or adopt an existing one
 ```
 
-装完重启 agent 让它重新加载。
-
-### 用法
-
 ```
-/rootfirst 我们的技能库攒了几百条，但实际被用上的没几条
+/firstwhy this same null-handling bug keeps coming back after every fix
 ```
 
-优先用显式命令。没有命令时只在三种情况自动启用：需求模糊到没法动手、方案取舍需要站得住的依据、同一个问题「修好了」又回来。其余情况不主动插进来。
+**Command first.** Without the command, the skill activates in only three situations:
 
-自然语言触发词：5why、第一性原理、根因分析、从根本上想想、为什么总是。
+- A requirement too vague to act on
+- A design tradeoff needing defensible justification
+- The same problem returning after it was supposedly fixed
 
-**不适用**：单次可复现的报错、测试失败、崩溃——那属于要有证据链和复现步骤的调试流程。
+It stays out of everything else — routine Q&A, lookups, clearly-scoped small changes.
 
-### 输出
+Natural-language triggers also work: *5why*, *five whys*, *first principles*, *root cause analysis*, *why does this keep happening*.
 
-分两档，由追问有没有撞墙决定：
+### Not for
 
-- **轻量档** —— 追到可动手的原因，没撞墙：现象 → 追问链 → 方案 → 反向校验 → 地基验证。十几行。
-- **完整档** —— 撞墙了：多出靶子拆解（硬约束 vs 历史习惯）、重建理由、以及为什么现成方案不能复用。一页左右。
-
-**两档都必须有反向校验和地基验证。**
-
-### 文件
-
-| 文件 | 内容 |
-|---|---|
-| [SKILL.md](SKILL.md) | 方法本体：7 步、关闭条件、分级输出格式、8 条反模式 |
-| [examples.md](examples.md) | 五个走完流程的实例——一个轻量档，四个完整档 |
-
-四个完整档分别覆盖：技能库、股票投资、反复出现的同类 bug、算法实验设计。
-
-### 反模式
-
-完整 8 条见 [SKILL.md](SKILL.md#反模式出现即为失败)。最容易犯的三条：
-
-1. **硬凑五轮** —— 第 4、5 轮多半是废话，三层能收工就三层。
-2. **把习惯当约束** —— 「大家都用 X」不是硬约束。
-3. **列了假设不验就当结论用** —— 裁判写在纸上，却没请上审判席。
+A single reproducible crash, error, or test failure. That belongs in a debugging workflow with evidence and reproduction steps (e.g. `systematic-debugging`). FirstWhy handles **structural recurrence**, not one-off failures.
 
 ---
 
-## License
+## 📤 Output
 
-MIT © 2026 h4444433333
+Two tiers, chosen automatically by whether drilling hit a wall:
+
+<details>
+<summary><b>Light tier</b> — reached an actionable cause, no wall (a dozen lines)</summary>
+
+```
+Symptom: …
+Chain: … → … → root cause
+Solution: …
+Walk-back: …
+Load-bearing assumption: … (may be empty; if present, verify now)
+Verification result: …
+Status: closed / pending
+```
+
+</details>
+
+<details>
+<summary><b>Full tier</b> — hit a wall, ran decomposition and rebuild (about a page)</summary>
+
+```
+Symptom: …
+Chain: … (marks which layer stalled, and the exact stalling sentence)
+Target split:
+  Real constraints: … (each with its violation consequence)
+  Inherited habits (void): …
+Rebuilt solution: … (states why existing solutions can't be reused)
+Walk-back: accounts for every layer
+Load-bearing (verify now): … → result: …
+Peripheral (may stay open): … + tests
+Status: closed / pending
+```
+
+</details>
+
+**Both tiers always include the walk-back and ground verification.** Those are the only two non-negotiable steps.
+
+---
+
+## 📚 Worked examples
+
+[`examples.md`](examples.md) contains five complete runs — not sketches, full chains with evidence, splits, walk-backs, and ground tests:
+
+| # | Domain | Tier | The wall it hits |
+|---|---|---|---|
+| 1 | Project conventions re-explained every session | Light | — *(never stalls)* |
+| 2 | A skill library nobody actually uses | Full | *"a skill is a written guide; once the model reads it, it'll naturally use it"* |
+| 3 | Stock investing: every trade made sense, the year lost money | Full | *"following the information everyone watches can't be wrong"* |
+| 4 | The same class of bug keeps coming back | Full | *"the tests are enough; fix it when it breaks"* |
+| 5 | Experiment scores swing, unclear whether the method works | Full | *"get results first, add the protocol later"* |
+
+Example 5 is worth reading even if you don't do ML — its two load-bearing assumptions have a **mandatory order**, and until the first one produces a number, "my method works" cannot be called true *or* false.
+
+---
+
+## 🚫 Anti-patterns
+
+Eight are defined in [SKILL.md](SKILL.md#anti-patterns-any-one-of-these-is-a-failure). The three that bite hardest:
+
+1. **Padding to five whys** — layers four and five are usually filler. If three rounds close it, use three. The "5" is a shape, not a quota.
+2. **Treating a habit as a constraint** — *"everyone uses X"* is not a constraint. No stateable consequence → habits pile.
+3. **Listing assumptions then treating the output as a conclusion** — the judge is written on paper but never seated on the bench.
+
+And two that guard against the skill itself becoming a time sink:
+
+7. **Verifying nothing** — see #3.
+8. **Demanding every assumption be verified** — the analysis will never close. Verify the ground, leave the periphery open.
+
+---
+
+## 🏗️ Design notes
+
+**Zero dependencies.** Four files, all Markdown plus one license. No runtime, no build, no package manager. A thinking method shouldn't need `npm install`.
+
+**Flat layout.** `SKILL.md` sits at the repo root, so `git clone <repo> <skills-dir>/firstwhy` *is* the install. Nesting the skill in a subdirectory would force every user to move files by hand.
+
+**Two content files, deliberately.** `SKILL.md` carries the method (~190 lines, under the 500-line budget for skill instructions). `examples.md` carries the worked runs. No badges directory, no docs site, no versioned changelog — for a method this size, packaging cost would exceed maintenance value.
+
+**Boundaries are written into the skill, not left implicit.** Both `SKILL.md` and Example 4 state explicitly when to hand off to a debugging workflow. Two skills that quietly overlap produce contradictory output.
+
+---
+
+## ❓ FAQ
+
+<details>
+<summary><b>Why not just prompt "use first principles thinking"?</b></summary>
+
+Because that's a vibe, not a procedure. Without a defined stall signal, a constraint/habit split test, a walk-back, and a ground-verification gate, the model produces confident-sounding analysis with no way to tell whether it reached the root or merely narrated it.
+
+</details>
+
+<details>
+<summary><b>Why is "reuse by default" written into Step 4?</b></summary>
+
+First-principles thinking has a well-known failure mode: it justifies rebuilding everything. Step 4 permits from-scratch design only when a constraint the existing solution depends on has been *falsified* — and requires naming which one. Without that brake the skill becomes an over-engineering machine.
+
+</details>
+
+<details>
+<summary><b>Does it work for non-technical problems?</b></summary>
+
+Yes. Example 3 is stock investing. The mechanism targets any domain where convention has replaced justification — process design, org decisions, product tradeoffs, personal systems.
+
+</details>
+
+<details>
+<summary><b>What if the load-bearing assumption can't be verified cheaply?</b></summary>
+
+Then you probably picked the wrong assumption. Across all four pending examples here, the ground tests cost: read a trade log, count 20 fix records, run ten tasks, run one dumb baseline. None required building a system. A genuinely expensive ground test usually means the real load-bearing claim is something else.
+
+</details>
+
+<details>
+<summary><b>Can I use it in Chinese?</b></summary>
+
+The skill files are English, but it responds in whatever language you write in. Natural-language triggers work in both.
+
+</details>
+
+---
+
+## 🤝 Contributing
+
+Issues and PRs welcome. Two things this repo is *not* looking for:
+
+- Additional packaging (badges, docs site, CI, versioning) — see [Design notes](#-design-notes)
+- New examples that don't complete the full chain including Step 7
+
+What *is* wanted: examples from domains not yet covered, sharper anti-patterns observed in real use, and corrections where the method misfires.
+
+---
+
+## 📄 License
+
+MIT © 2026 [h4444433333](https://github.com/h4444433333). See [LICENSE](LICENSE).
+
+<div align="center">
+
+**First, why?**
+
+</div>

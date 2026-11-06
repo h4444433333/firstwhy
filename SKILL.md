@@ -1,192 +1,193 @@
 ---
-name: rootfirst
-description: "Prefer explicit /rootfirst invocation. Without the command, activate only in three situations: a requirement too vague to act on, a design tradeoff that needs defensible justification, or the same problem returning after it was supposedly fixed. Drills down by asking why until the answer hardens into an unexamined assumption (\"that's just how it's done\"), splits that assumption into real constraints versus inherited habits, rebuilds the solution from the constraints only, walks back up the chain to prove every layer is explained, then verifies the load-bearing assumption with the cheapest available evidence. Triggers: rootfirst, 5why, five whys, first principles, root cause, 根因分析, 第一性原理, 从根本上想想, 为什么总是, 反复出现. Not for single reproducible crashes or test failures — route those to a debugging workflow."
-argument-hint: "[问题 / 要做的决策 / 反复出现的症状]"
+name: firstwhy
+description: "Prefer explicit /firstwhy invocation. Without the command, activate only in three situations: a requirement too vague to act on, a design tradeoff that needs defensible justification, or the same problem returning after it was supposedly fixed. Drills down by asking why until the answer hardens into an unexamined assumption (\"that's just how it's done\"), splits that assumption into real constraints versus inherited habits, rebuilds the solution from the constraints alone, walks back up the chain to prove every layer is explained, then verifies the load-bearing assumption with the cheapest available evidence. Triggers: firstwhy, 5why, five whys, first principles, first-principles thinking, root cause, root cause analysis, why does this keep happening. Not for single reproducible crashes or test failures — route those to a debugging workflow."
+argument-hint: "[the problem, the decision, or the recurring symptom]"
 ---
 
-# RootFirst · 5Why × 第一性原理
+# FirstWhy · 5Why × First Principles
 
-## 核心机制
+## Core mechanism
 
-往下追问，**直到答案变成"就是这样 / 大家都这么做 / 这是约定"**。那句话就是要拆的靶子。
-把它拆成**硬约束**与**历史习惯**，只用硬约束重建方案，再倒回追问链逐层交代，**最后把方案立身的那条假设真验一遍**。
+Ask why until the answer hardens into **"that's just how it's done" / "everyone does it this way" / "it's the convention."** That sentence is the target.
 
-追问负责定位唯一靶点（避免十个方向全拆），拆解负责钻穿硬壳（避免停在"大家都这样"），地基验证负责把逻辑自洽变成事实成立。三者缺一不可。
+Split the target into **real constraints** and **inherited habits**, rebuild the solution from the constraints alone, walk back up the chain to account for every layer, and **finally verify the one assumption the whole solution stands on**.
 
-**关键区分**：反向校验证明的是「逻辑上说得通」，不等于「事情是真的」。少了地基验证，这套流程就是自己给自己发合格证。
+Drilling locates a single target (so you don't decompose in ten directions at once). Decomposition breaks through the shell (so you don't stall at "everyone does it this way"). Ground verification turns logical coherence into factual truth. All three are load-bearing.
 
-## 流程总图
+**The critical distinction**: walking back up proves the reasoning *holds together*. It does not prove it is *true*. Without ground verification, this whole method is just issuing itself a certificate.
+
+## Flow
 
 ```
-1 锁定现象
-2 往下追问 ──追到能动手──→ 5 反向校验 → 6 列假设 → 7 验地基 → 关闭
-   │                                      ↑                  │
-   └─撞到「大家都这样」→ 3 拆靶子 → 4 重建 ┘                  │
-                                                          地基假设被证伪
-                                                          ↓
-                                                    退回第 3 步重拆
+1 Pin down the symptom
+2 Ask why ──reached something actionable──→ 5 Walk back up → 6 List assumptions → 7 Verify ground → Close
+   │                                                ↑                          │
+   └─hit "everyone does it this way"→ 3 Split → 4 Rebuild ┘                    │
+                                                                  assumption falsified
+                                                                        ↓
+                                                              back to step 3, re-split
 ```
 
-## 何时用
+## When to use
 
-**优先用 `/rootfirst` 显式调用。**
+**Prefer the explicit `/firstwhy` command.**
 
-没有命令时，只在下面三种情况自动启用：
+Without the command, activate only in these three situations:
 
-- 需求模糊到没法动手
-- 方案取舍需要站得住的依据
-- 同一个问题「修好了」又回来
+- A requirement too vague to act on
+- A design tradeoff that needs defensible justification
+- The same problem returning after it was supposedly fixed
 
-自然语言触发词：5why、第一性原理、根因分析、从根本上想想、为什么总是。
+Natural-language triggers: 5why, first principles, root cause analysis, think from the ground up, why does this keep happening.
 
-**其余情况不要主动插进来**——日常问答、信息查询、明确的小改动，直接做。
+**Stay out of everything else** — routine Q&A, information lookups, clearly-scoped small changes. Just do the work.
 
-## 何时不用（边界）
+## When NOT to use
 
-| 情况 | 去哪 |
+| Situation | Go here instead |
 |---|---|
-| 有可复现的报错、测试失败、崩溃 | 走调试流程（如 `systematic-debugging`），那边要证据链和复现 |
-| 纯信息查询、明确的一步小改动 | 直接做，别套流程 |
-| 用户只要结论 | 走轻量档，砍掉拆解与重建 |
+| A reproducible error, test failure, or crash | A debugging workflow (e.g. `systematic-debugging`) — that one needs evidence and reproduction |
+| Pure information lookup, one obvious small change | Just do it, don't run a process |
+| User only wants the conclusion | Use the light tier, skip decomposition and rebuild |
 
-## 流程
+## The process
 
-### 第 1 步 锁定现象
+### Step 1 — Pin down the symptom
 
-一句话写清「什么不对」或「要决定什么」。**这一步禁止出现原因**。
-现象本身模糊时，先问用户一个澄清问题，不要猜。
+One sentence: what is wrong, or what must be decided. **No causes allowed in this step.**
+If the symptom itself is vague, ask the user one clarifying question. Do not guess.
 
-### 第 2 步 往下追问
+### Step 2 — Ask why
 
-每层格式：
+Format each layer:
 
 ```
-为什么 X？ → 因为 Y（依据：观察到的事实 / 代码 / 数据 / 用户原话）
+Why X? → Because Y (evidence: observed fact / code / data / the user's own words)
 ```
 
-规则：
+Rules:
 
-- **不预设五轮**。问到「卡住」或「能动手」就停。
-- 每层必须带依据。没有依据的推测一律标 `[假设]`。
-- 卡住的信号词：就是这样 / 一直都这样 / 大家都这么做 / 这是规范 / 历史原因 / 当时图快 / 上游给的
+- **Do not preset five rounds.** Stop when you stall or when you reach something actionable.
+- Every layer needs evidence. Mark any unevidenced guess as `[assumption]`.
+- Stall signals: that's just how it is / it's always been this way / everyone does it this way / it's the standard / legacy reasons / it was faster at the time / that's what upstream gave us
 
-**分叉判断**：
+**Branch**:
 
-- 追到可动手的具体原因 → 直接跳第 5 步（轻量档，不拆解）
-- 撞到信号词 → 进入第 3 步（完整档）
+- Reached a concrete, actionable cause → jump to Step 5 (light tier, no decomposition)
+- Hit a stall signal → go to Step 3 (full tier)
 
-### 第 3 步 拆靶子（仅在卡住时做）
+### Step 3 — Split the target (only when stalled)
 
-把那句「大家都这样」拆成两堆：
+Split that "everyone does it this way" into two piles:
 
-| 硬约束（算数） | 历史习惯（作废，可重选） |
+| Real constraints (these count) | Inherited habits (void, re-choosable) |
 |---|---|
-| 物理、数学上不可违反 | 前人当时的临时选择 |
-| 成本、时间、人力的真实上限 | 沿用了但没人质疑过 |
-| 法规、安全、兼容性硬要求 | 「业界惯例」却说不出为什么 |
+| Physically or mathematically unavoidable | Someone's temporary choice at the time |
+| Genuine ceilings on cost, time, headcount | Carried forward, never questioned |
+| Hard legal, safety, or compatibility requirements | "Industry convention" nobody can justify |
 
-**判定要求**：每条硬约束必须能说出「违反它会发生什么具体的坏事」。说不出后果的，一律归入历史习惯堆。
+**Test**: every real constraint must state **what concretely goes wrong if it is violated**. Anything that cannot state a consequence goes in the habits pile.
 
-### 第 4 步 重建方案
+### Step 4 — Rebuild
 
-**默认复用，不轻易重建。**
+**Reuse by default. Do not rebuild casually.**
 
-先检查现成方案能否满足第 3 步的全部硬约束。只有当「现有方案所依赖的某个约束已被证伪」时，才允许从头设计，并明确写出是哪个约束被证伪了。
+First check whether an existing solution already satisfies every real constraint from Step 3. Only when a constraint that the existing solution depends on has been *falsified* may you design from scratch — and you must name which constraint was falsified.
 
-重建时逐条对齐硬约束，说明方案如何满足它。
+When rebuilding, map the solution against each constraint and state how it is satisfied.
 
-### 第 5 步 反向校验（不可跳过）
+### Step 5 — Walk back up (never skip)
 
-拿方案回到追问链，逐层交代：
+Take the solution back to the chain and account for each layer:
 
 ```
-第 N 层的 Y —— 方案如何让它不再发生？
+Layer N's Y — how does the solution stop this from happening?
 ```
 
-**任何一层解释不掉，说明只补了症状，退回第 4 步。**
-这一步是区分「真打到根上」与「换个姿势补症状」的唯一手段。
+**If any layer cannot be accounted for, you only patched a symptom. Go back to Step 4.**
+This is the only way to separate "genuinely hit the root" from "patched the symptom in a new posture."
 
-### 第 6 步 列出待验证假设
+### Step 6 — List the assumptions
 
-汇总所有标了 `[假设]` 的条目，以及第 3 步判定为硬约束但缺实测证据的条目。
-每条给**最省事的验法**：一个命令、一次查询、一个最小实验。
+Collect everything marked `[assumption]`, plus anything judged a real constraint in Step 3 but lacking measured evidence.
+Give each one **the cheapest possible test**: one command, one lookup, one minimal experiment.
 
-### 第 7 步 验地基假设（不可跳过）
+### Step 7 — Verify the ground (never skip)
 
-第 6 步的清单不能就这么摆着。把假设分两类：
+The Step 6 list cannot just sit there. Sort the assumptions into two kinds:
 
-| | 地基假设 | 边角假设 |
+| | Load-bearing | Peripheral |
 |---|---|---|
-| 作用 | 方案立不立得住，全看它 | 只影响方案好到什么程度 |
-| 处理 | **当场就验，用最省事那个验法，现在就做** | 记下来，边做边看 |
-| 验不过 | **整个方案作废，退回第 3 步重拆靶子** | 调整方案细节，不动骨架 |
-| 数量 | 通常只有一两条 | 剩下的都归这儿 |
+| Role | Whether the solution stands at all | Only how *well* it works |
+| Action | **Verify now, with the cheapest test, immediately** | Note it, watch while doing |
+| If it fails | **Solution is void — back to Step 3, re-split the target** | Adjust details, keep the skeleton |
+| Count | Usually one or two | Everything else |
 
-**如何认地基**：问一句「这条如果不成立，方案还能用吗？」不能用 → 地基。能用、只是效果差些 → 边角。
+**How to tell which is which**: ask "If this is false, does the solution still work?" No → load-bearing. Yes, just less well → peripheral.
 
-**为什么验不过要退回第 3 步**：地基假设被证伪，说明拆靶子时把一条历史习惯误判成了硬约束，地基本身就是错的，不能在错地基上继续施工。
+**Why a failure sends you back to Step 3**: a falsified load-bearing assumption means you mis-classified an inherited habit as a real constraint during the split. The ground itself is wrong. You cannot keep building on it.
 
-**未验完前的状态约束**：地基假设没验之前，整个分析的输出必须标成「待验证」，**不得当成已成立的结论去做大动作**（写进论文、定方案、改架构、下重仓）。
+**Status constraint until verified**: before the load-bearing assumption has evidence, the entire analysis must be marked **pending**. It must not be treated as an established conclusion for anything consequential (writing it into a paper, committing to a plan, changing architecture, taking a large position).
 
-### 关闭条件
+### Closing condition
 
-满足任一条才算关闭：
+The analysis closes when either holds:
 
-- 地基假设全部有实测证据
-- 或已经回炉重拆过，新的地基假设已验
+- Every load-bearing assumption has measured evidence
+- Or the target has been re-split and the new ground is verified
 
-**边角假设可以挂着不关闭**。不要求把所有假设验完——那会让分析永远关不掉。
+**Peripheral assumptions may stay open.** Do not demand that every assumption be verified — that makes the analysis unclosable.
 
-## 输出格式（分级）
+## Output format (two tiers)
 
-**轻量档** —— 追到可动手原因，没撞墙：
-
-```
-现象：……
-追问链：…… → …… → 根因
-方案：……
-反向校验：……
-地基假设：……（可为空；有则当场验）
-验证结果：……
-状态：已关闭 / 待验证
-```
-
-**完整档** —— 撞墙了，走了拆解与重建：
+**Light tier** — reached an actionable cause, never hit a wall:
 
 ```
-现象：……
-追问链：……（标出卡在第几层、卡住的原话）
-靶子拆解：
-  硬约束：……（每条附违反后果）
-  历史习惯（作废）：……
-重建方案：……（说明为何现成方案不可复用）
-反向校验：逐层交代
-地基假设（当场验）：…… → 验证结果：……
-边角假设（可挂着）：…… + 验法
-状态：已关闭 / 待验证
+Symptom: …
+Chain: … → … → root cause
+Solution: …
+Walk-back: …
+Load-bearing assumption: … (may be empty; if present, verify it now)
+Verification result: …
+Status: closed / pending
 ```
 
-## 反模式（出现即为失败）
+**Full tier** — hit a wall, ran decomposition and rebuild:
 
-1. **硬凑五轮** —— 第 4、5 轮多半是废话。三层能收工就三层。
-2. **把习惯当约束** —— 「大家都用 X」不是硬约束。说不出违反后果的全归习惯堆。
-3. **拆完就重建一切** —— 这是过度设计。默认复用，证伪了才重建。
-4. **跳过反向校验** —— 没这步就无法证明分析到位。
-5. **追问不带依据** —— 全是推测的链条等于没查，必须标 `[假设]`。
-6. **拿它当调试器** —— 有可复现报错就走调试流程（如 `systematic-debugging`），别在这儿空转。
-7. **列了假设不验就当结论用** —— 裁判写在纸上却没请上审判席。地基假设当场验，验不了就把输出标成「待验证」。
-8. **要求把所有假设验完** —— 分析会永远关不掉。只验地基，边角挂着。
+```
+Symptom: …
+Chain: … (mark which layer stalled, and the exact stalling sentence)
+Target split:
+  Real constraints: … (each with its violation consequence)
+  Inherited habits (void): …
+Rebuilt solution: … (state why existing solutions can't be reused)
+Walk-back: account for every layer
+Load-bearing (verify now): … → result: …
+Peripheral (may stay open): … + tests
+Status: closed / pending
+```
 
-## 示例
+## Anti-patterns (any one of these is a failure)
 
-见 [examples.md](examples.md)，五个走完流程的实例：
+1. **Padding to five whys** — layers four and five are usually filler. If three rounds close it, use three.
+2. **Treating a habit as a constraint** — "everyone uses X" is not a constraint. Anything with no stateable consequence goes in the habits pile.
+3. **Decomposing then rebuilding everything** — that is over-engineering. Reuse by default; rebuild only on a falsified constraint.
+4. **Skipping the walk-back** — without it you cannot prove the analysis reached the root.
+5. **Asking why without evidence** — a chain of pure speculation is the same as not investigating. Mark `[assumption]`.
+6. **Using it as a debugger** — a reproducible error belongs in a debugging workflow (e.g. `systematic-debugging`). Don't spin here.
+7. **Listing assumptions then treating the output as a conclusion** — the judge is written on paper but never seated on the bench. Verify the load-bearing assumption now; if you can't, mark the output **pending**.
+8. **Demanding every assumption be verified** — the analysis will never close. Verify the ground, leave the periphery open.
 
-| 示例 | 领域 | 档位 |
+## Examples
+
+See [examples.md](examples.md) — five fully worked runs:
+
+| # | Domain | Tier |
 |---|---|---|
-| 1 | 项目约定每次重讲 | 轻量档 |
-| 2 | 技能库攒了很多却没被用上 | 完整档 |
-| 3 | 股票投资每笔都有道理却整体亏 | 完整档 |
-| 4 | 同类 bug 修完又冒出来 | 完整档 |
-| 5 | 实验分数忽高忽低说不清方法是否有效 | 完整档 |
+| 1 | Project conventions re-explained every session | Light |
+| 2 | A skill library nobody actually uses | Full |
+| 3 | Stock investing: every trade made sense, the year lost money | Full |
+| 4 | The same class of bug keeps coming back | Full |
+| 5 | Experiment scores swing, unclear whether the method works | Full |
 
-示例 4 开头写清了与调试类 skill 的分工：单次可复现的报错走那边，反复出现的同类问题走这边。
+Example 4 opens by drawing the line against debugging skills: a single reproducible failure goes there, a recurring *class* of problem comes here.

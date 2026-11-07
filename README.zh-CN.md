@@ -161,6 +161,15 @@ git clone https://github.com/h4444433333/firstwhy <你的-skills-目录>/firstwh
 
 重启智能体让它重新加载技能。就这些 —— 无依赖、无构建步骤、无配置文件。
 
+### 改已装好的那份（维护者）
+
+这个仓库是唯一源头。已经装到 skills 目录里的那份，**不会**跟着这里的修改自动更新。在这里提交、推送之后，把已装的那份重新同步一遍，再重启智能体加载：
+
+```bash
+rsync -a --exclude '.git' . ~/.qoder-cn/skills/firstwhy/   # Qoder
+rsync -a --exclude '.git' . ~/.claude/skills/firstwhy/     # Claude Code
+```
+
 ---
 
 ## 📖 用法

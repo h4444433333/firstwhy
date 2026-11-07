@@ -161,6 +161,15 @@ git clone https://github.com/h4444433333/firstwhy <your-skills-dir>/firstwhy
 
 Restart the agent so it reloads skills. That's it — no dependencies, no build step, no config file.
 
+### Editing an installed copy (maintainer)
+
+This repo is the single source of truth. A copy already installed in your skills dir does **not** update itself when you edit here. After committing and pushing, re-sync the installed copy, then restart the agent to reload:
+
+```bash
+rsync -a --exclude '.git' . ~/.qoder-cn/skills/firstwhy/   # Qoder
+rsync -a --exclude '.git' . ~/.claude/skills/firstwhy/     # Claude Code
+```
+
 ---
 
 ## 📖 Usage
